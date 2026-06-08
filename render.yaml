@@ -1,0 +1,67 @@
+# Render Blueprint — deploys the GraphRAG assistant HTTP API.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# After connecting this repo on Render, set the `sync: false` secrets in the
+# dashboard (they are NOT read from your local .env). NEO4J_URI must point at a
+# REACHABLE Neo4j (e.g. Neo4j Aura) — a local bolt://127.0.0.1 will not work on
+# Render. Your Pinecone namespace (pulmonology_v1) must already be populated.
+
+services:
+  - type: web
+    name: enervera-pulmonology-api
+    runtime: python
+    plan: starter                      # bump for more memory/CPU as needed
+    region: oregon                     # pick the region closest to your data stores
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+
+      # ── Secrets (set these in the Render dashboard) ──
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: NEO4J_PASSWORD
+        sync: false
+      - key: NEO4J_URI            # e.g. neo4j+s://<id>.databases.neo4j.io  (Aura)
+        sync: false
+      - key: API_KEY             # if set, callers must send X-API-Key
+        sync: false
+
+      # ── Non-secret config ──
+      - key: NEO4J_USERNAME
+        value: neo4j
+      - key: PINECONE_INDEX_NAME
+        value: enervara-specialists
+      - key: ANSWER_MODEL
+        value: gemini-2.5-flash-lite
+      - key: QUERY_ANALYZER_MODEL
+        value: gemini-2.5-flash-lite
+      - key: CORS_ORIGINS
+        value: "*"                # tighten to your frontend origin(s) for production
+
+      # ── Episodic memory: off by default. To enable, set true + populate the
+      #    episodic Pinecone index, and pass user_id from your auth layer. ──
+      - key: EPISODIC_MEMORY_ENABLED
+        value: "false"
+      - key: PINECONE_EPISODIC_INDEX_NAME
+        value: episodicmemory
+
+      # ── Session memory (Redis). Without it, sessions live in RAM and are lost
+      #    on restart / not shared across instances. Provision a Render Redis and
+      #    set REDIS_URL from its connection string. ──
+      # - key: REDIS_URL
+      #   fromService:
+      #     type: redis
+      #     name: enervera-redis
+      #     property: connectionString
+
+# To add managed Redis, uncomment and wire REDIS_URL above:
+# - type: redis
+#   name: enervera-redis
+#   plan: starter
+#   ipAllowList: []

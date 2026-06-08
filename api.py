@@ -1,13 +1,14 @@
 """
-FastAPI wrapper for the GraphRAG pulmonology assistant.
+api.py — deployment entrypoint for the GraphRAG pulmonology assistant HTTP API.
 
-Exposes a thin HTTP surface over `GraphRAGPipeline`:
-    GET  /health          → liveness/readiness
-    POST /chat            → { message, session_id?, user_id? } → { answer, session_id }
+Routes:
+    GET  /         → service info
+    GET  /health   → liveness/readiness probe (used by render.yaml)
+    POST /chat     → { message, session_id?, user_id? } → { answer, session_id }
 
 Run locally:
-    uvicorn app.main:app --host 0.0.0.0 --port 8000
-On Render the start command + $PORT come from render.yaml.
+    uvicorn api:app --host 0.0.0.0 --port 8000
+On Render the start command + $PORT come from render.yaml (`uvicorn api:app`).
 
 Design notes
 ------------
@@ -17,9 +18,9 @@ Design notes
   `asyncio.run()`, which cannot run inside a live event loop. So `/chat` is a
   plain `def` endpoint — FastAPI runs sync endpoints in a threadpool, off the
   event loop, which is exactly what the memory layer needs.
-- The pipeline (and its episodic event loop + client connections) is not proven
-  thread-safe, so calls are serialized with a lock. For real concurrency run
-  multiple uvicorn worker PROCESSES (each gets its own pipeline) — see HANDOFF §9.
+- The shared pipeline (its episodic event loop + client connections) is not
+  proven thread-safe, so calls are serialized with a lock. For real concurrency
+  run multiple uvicorn worker PROCESSES (each gets its own pipeline).
 """
 
 from __future__ import annotations
@@ -30,13 +31,14 @@ import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-# ── Bootstrap: project root on path + Windows TLS + UTF-8 ──────────────────────
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# ── Bootstrap: project root on path + Windows/Aura TLS + UTF-8 ─────────────────
+PROJECT_ROOT = Path(__file__).resolve().parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-# Route TLS through the OS trust store BEFORE any Pinecone/Neo4j/Gemini import
-# (fixes "unable to get local issuer certificate" behind a proxy/AV/VPN).
+# Route TLS through the OS trust store BEFORE any Pinecone/Neo4j/Gemini import.
+# Required for Neo4j Aura (neo4j+s://) and Pinecone behind a proxy/AV/VPN
+# ("unable to get local issuer certificate"). Falls back to certifi.
 try:
     import truststore
     truststore.inject_into_ssl()
@@ -55,7 +57,7 @@ from pydantic import BaseModel, Field
 from graphrag.config.settings import ConfigError, settings
 
 
-# ── Request/response models ───────────────────────────────────────────────────
+# ── Request / response models ─────────────────────────────────────────────────
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, description="The user's message/question.")
     session_id: str = Field("default", description="Conversation/memory key.")
@@ -72,7 +74,6 @@ class ChatResponse(BaseModel):
 # ── App lifecycle: build the pipeline once ────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Fail fast on missing config before constructing any clients.
     try:
         settings.validate_required("api")
     except ConfigError as e:
@@ -114,6 +115,11 @@ def require_api_key(x_api_key: str | None = Header(default=None)) -> None:
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
+@app.get("/")
+def root() -> dict[str, str]:
+    return {"service": "Enervera Pulmonology Assistant", "status": "ok", "docs": "/docs"}
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -137,3 +143,13 @@ def chat(req: ChatRequest, request: Request) -> ChatResponse:
             raise HTTPException(status_code=500, detail=f"Pipeline error: {exc}") from exc
 
     return ChatResponse(answer=answer or "", session_id=req.session_id)
+
+
+if __name__ == "__main__":
+    # Convenience: `python api.py` starts the server (same as `uvicorn api:app`).
+    # On Render the start command in render.yaml runs `uvicorn api:app` instead.
+    import uvicorn
+
+    port = int(os.environ.get("PORT", settings.PORT))
+    uvicorn.run(app, host="0.0.0.0", port=port)
+

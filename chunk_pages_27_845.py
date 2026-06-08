@@ -2,7 +2,7 @@
 Chunk the Oxford Handbook of Respiratory Medicine over pages 27–845.
 
 Page numbers are 1-based PHYSICAL PDF pages, inclusive (same convention as
-run_pulmonology.py --start-page/--end-page). The handbook front-matter ends and
+chunker.py --start-page/--end-page). The handbook front-matter ends and
 clinical content begins around p.27; p.845 is the last content page before the
 index, so this range is the body of the book.
 

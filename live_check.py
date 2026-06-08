@@ -117,10 +117,15 @@ def check_episodic() -> None:
     print("\n=== Episodic index (info) ===")
     from pinecone import Pinecone
     from graphrag.config.settings import settings
+    # Episodic memory may live in a SEPARATE Pinecone account — use its key.
+    key = settings.EPISODIC_PINECONE_API_KEY or settings.PINECONE_API_KEY
+    same_acct = settings.EPISODIC_PINECONE_API_KEY is None
     try:
-        pc = Pinecone(api_key=settings.PINECONE_API_KEY)
+        pc = Pinecone(api_key=key)
+        print(f"  using {'main' if same_acct else 'dedicated EPSIODIC_API_KEY'} account")
         if not pc.has_index(settings.PINECONE_EPISODIC_INDEX_NAME):
-            print(f"  '{settings.PINECONE_EPISODIC_INDEX_NAME}' not found (fine if episodic is disabled).")
+            print(f"  '{settings.PINECONE_EPISODIC_INDEX_NAME}' not found in this account "
+                  f"(fine if episodic is disabled).")
             return
         stats = pc.Index(settings.PINECONE_EPISODIC_INDEX_NAME).describe_index_stats()
         total = getattr(stats, "total_vector_count", None)

@@ -12,7 +12,9 @@ from graphrag.config.settings import settings
 
 
 class EpisodicConfig:
-    PINECONE_API_KEY = settings.PINECONE_API_KEY
+    # The episodic index may live in a different Pinecone account, so prefer its
+    # dedicated key (EPSIODIC_API_KEY) and fall back to the main key if unset.
+    PINECONE_API_KEY = settings.EPISODIC_PINECONE_API_KEY or settings.PINECONE_API_KEY
     PINECONE_INDEX_NAME = settings.PINECONE_EPISODIC_INDEX_NAME
 
     EXTRACTION_MODEL = settings.EPISODIC_EXTRACTION_MODEL

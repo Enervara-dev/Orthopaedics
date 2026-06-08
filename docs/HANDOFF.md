@@ -87,8 +87,11 @@ packages**; the orchestration + retrievers are domain-agnostic.
 ## 3. Repository layout
 
 ```
-run_graphrag.py            # ⭐ CLI entrypoint for the assistant (REPL + --query)
-run_pulmonology.py         # chunking entrypoint (PDF → chunks)
+api.py                     # ⭐ HTTP API entrypoint (uvicorn api:app) — deploy target
+run_graphrag.py            # CLI entrypoint for the assistant (REPL + --query)
+chunker.py                 # chunking entrypoint (PDF → chunks)
+live_check.py              # live data-store verification (Pinecone namespace + Neo4j counts)
+smoke_test.py              # offline end-to-end regression test (stubs externals)
 ingest_pinecone.py         # chunks → Pinecone (use --namespace pulmonology_v1)
 ingest_neo4j.py            # chunks → Neo4j graph
 test_pipeline.py           # chunking smoke tests (NOT graphrag — see §11)
@@ -224,11 +227,12 @@ Each item: **problem → where → what to do.**
 - **Live end-to-end smoke test.** *Where:* `run_graphrag.py`. *Action:* run a real query on a networked machine; confirm retrieval, `🔗 Graph entities`, streamed structured answer, and (with `--user-id`) episodic activation.
 
 ### P1 — needed to run as a service
-- **HTTP API — [SCAFFOLDED ✅].** `app/main.py` (FastAPI) exposes `GET /health` and
+- **HTTP API — [READY ✅].** `api.py` (FastAPI) exposes `GET /`, `GET /health` and
   `POST /chat {message, session_id?, user_id?}` over a single startup-built
   `GraphRAGPipeline`. Enforces `X-API-Key` when `API_KEY` is set; honors
-  `CORS_ORIGINS`; injects truststore. Deploy via `render.yaml`. Run locally:
-  `uvicorn app.main:app --host 0.0.0.0 --port 8000`.
+  `CORS_ORIGINS`; injects truststore (also covers Neo4j Aura TLS). Deploy via
+  `render.yaml` (`uvicorn api:app`). Run locally:
+  `uvicorn api:app --host 0.0.0.0 --port 8000`.
   - *Async approach used:* `/chat` is a sync `def` so FastAPI threadpools it,
     off the event loop, which is what `SessionMemoryAdapter`'s `asyncio.run()`
     needs. Calls are **serialized with a lock** (the shared pipeline isn't

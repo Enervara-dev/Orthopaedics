@@ -12,8 +12,10 @@ services:
     runtime: python
     plan: starter                      # bump for more memory/CPU as needed
     region: oregon                     # pick the region closest to your data stores
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # Runtime-only deps — the offline chunking pipeline (PyMuPDF/pandas/openai)
+    # is NOT needed on the server, so we use the slim requirements-api.txt.
+    buildCommand: pip install -r requirements-api.txt
+    startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     autoDeploy: true
     envVars:
@@ -30,6 +32,8 @@ services:
       - key: NEO4J_URI            # e.g. neo4j+s://<id>.databases.neo4j.io  (Aura)
         sync: false
       - key: API_KEY             # if set, callers must send X-API-Key
+        sync: false
+      - key: EPSIODIC_API_KEY    # separate Pinecone account for episodic memory
         sync: false
 
       # ── Non-secret config ──

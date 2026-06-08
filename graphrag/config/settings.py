@@ -17,6 +17,7 @@ from __future__ import annotations
 from typing import ClassVar, Literal, Optional
 
 from dotenv import load_dotenv
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Load `.env` once at import so legacy modules that read `os.getenv` directly
@@ -93,6 +94,15 @@ class Settings(BaseSettings):
     # is passed on the CLI.
     EPISODIC_MEMORY_ENABLED: bool = True
     PINECONE_EPISODIC_INDEX_NAME: str = "episodicmemory"
+    # The episodic index can live in a SEPARATE Pinecone account/project, so it
+    # has its own API key. Reads `EPSIODIC_API_KEY` (the spelling used in .env)
+    # or `EPISODIC_API_KEY`. Falls back to PINECONE_API_KEY when unset.
+    EPISODIC_PINECONE_API_KEY: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "EPSIODIC_API_KEY", "EPISODIC_API_KEY", "EPISODIC_PINECONE_API_KEY"
+        ),
+    )
     EPISODIC_EXTRACTION_MODEL: str = "gemini-2.5-flash-lite"
     EPISODIC_CLARIFICATION_MODEL: str = "gemini-2.5-flash-lite"
     EPISODIC_CONTRADICTION_MODEL: str = "gemini-2.5-flash-lite"

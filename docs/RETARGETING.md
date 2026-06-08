@@ -37,7 +37,7 @@ LLM clients, or memory machinery.
 
 ```powershell
 # Chunk the new specialty's source PDFs (offline pipeline — see root README)
-python run_pulmonology.py --version v1            # produces chunks/v1/...
+python chunker.py --version v1                    # produces chunks/v1/...
 
 # Vector store: ingest into the SAME namespace you set in vocabulary.py
 python ingest_pinecone.py --namespace cardiology_v1

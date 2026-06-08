@@ -19,6 +19,6 @@ requests>=2.31
 redis>=5.0
 orjson>=3.9
 
-# HTTP service (app/main.py, deployed via render.yaml)
+# HTTP service (api.py, deployed via render.yaml)
 fastapi>=0.110
 uvicorn[standard]>=0.29

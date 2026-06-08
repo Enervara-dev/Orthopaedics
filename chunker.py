@@ -1,13 +1,13 @@
 """
-Entry point for the pulmonology chunking pipeline.
+Entry point for the chunking pipeline (PDF reference texts → micro-chunks).
 
 Processes every *.pdf in  dataset/  into validated micro-chunks
 (entities + relations + summary + clinical significance).
 
 Usage:
-    python run_pulmonology.py
-    python run_pulmonology.py --version v2
-    python run_pulmonology.py --dataset-dir path/to/pdfs
+    python chunker.py
+    python chunker.py --version v2
+    python chunker.py --dataset-dir path/to/pdfs
 """
 
 import sys
@@ -38,10 +38,10 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler(LOG_DIR / "run_pulmonology.log", encoding="utf-8"),
+        logging.FileHandler(LOG_DIR / "chunker.log", encoding="utf-8"),
     ],
 )
-logger = logging.getLogger("run_pulmonology")
+logger = logging.getLogger("chunker")
 
 from chunking.pipeline.manager import DocumentProcessingPipeline  # noqa: E402
 

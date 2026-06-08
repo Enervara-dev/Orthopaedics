@@ -350,7 +350,7 @@ def test_api_wiring():
         R.skip("FastAPI app", "fastapi not installed in this interpreter")
         return
     try:
-        from app.main import app
+        from api import app
         paths = {getattr(r, "path", None) for r in app.routes}
         R.check("/health route registered", "/health" in paths)
         R.check("/chat route registered", "/chat" in paths)

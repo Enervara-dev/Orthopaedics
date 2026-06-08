@@ -22,7 +22,7 @@ unchanged.
 ## Layout
 
 ```
-├── run_pulmonology.py        # generic entry point — processes every PDF in dataset/
+├── chunker.py                # generic entry point — processes every PDF in dataset/
 ├── chunk_pages_27_845.py     # example: plan/smoke/full run over a page range
 ├── .env.example              # copy to .env and add GEMINI_API_KEY
 ├── dataset/                  # ← drop your source PDFs here
@@ -58,9 +58,9 @@ Copy-Item .env.example .env   # then edit .env and set GEMINI_API_KEY
 2. Run:
 
 ```powershell
-python run_pulmonology.py
-python run_pulmonology.py --version v2                  # tag a different output version
-python run_pulmonology.py --start-page 27 --end-page 845  # inclusive page range
+python chunker.py
+python chunker.py --version v2                  # tag a different output version
+python chunker.py --start-page 27 --end-page 845  # inclusive page range
 ```
 
 Results land under `chunks/`:

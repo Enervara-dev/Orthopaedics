@@ -1,0 +1,25 @@
+# Runtime-only dependencies for the HTTP API (api.py) deployed on Render.
+# Excludes the OFFLINE chunking pipeline's heavy deps (PyMuPDF, pandas, openai)
+# since chunking never runs on the server — it's a local one-time step that
+# populates Pinecone + Neo4j, which the API only reads from.
+# For local work that includes chunking, use the full requirements.txt instead.
+
+# Config
+pydantic>=2.0
+pydantic-settings>=2.0
+python-dotenv>=1.0
+truststore>=0.9
+
+# LLM + vector + graph (retrieval + answer + episodic)
+google-genai>=0.8
+pinecone>=5.0
+neo4j>=5.0
+requests>=2.31
+
+# Session memory (optional — graceful fallback if absent)
+redis>=5.0
+orjson>=3.9
+
+# HTTP service
+fastapi>=0.110
+uvicorn[standard]>=0.29

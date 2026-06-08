@@ -447,9 +447,10 @@ class GraphRAGPipeline:
             query_type=("emergency" if emergency else query_type.value),
         )
 
-        # ── Stage 5: Episodic Memory Ingest (post-answer, best-effort) ───
-        if user_id and self._episodic is not None:
-            self._ingest_episodic_turn(user_id=user_id, utterance=original_query_text)
+        # NOTE: episodic memory is NOT written per-turn. It is consolidated and
+        # written ONCE when the conversation closes — call `end_session(...)`
+        # (exposed as POST /session/end). This keeps long-term memory to one
+        # coherent episode per consultation instead of fragmented per-message ones.
 
         return answer
 
@@ -480,23 +481,45 @@ class GraphRAGPipeline:
             logger.warning("Episodic context load failed: %s", exc)
             return ""
 
-    def _ingest_episodic_turn(self, *, user_id: str, utterance: str) -> None:
+    def end_session(self, *, user_id: str, session_id: str = "default") -> dict:
         """
-        Best-effort ingest of the user's turn into episodic memory.
+        Close a conversation and write ONE consolidated episode to episodic
+        memory. Call this when the chat ends (exposed as POST /session/end).
 
-        Runs extract → contradiction check → clarification triage → store. If
-        any LLM call hits a rate limit or the network is flaky, we log and
-        move on — the user's main answer has already streamed.
+        Loads the session's accumulated state + rolling summary + patient
+        statements, builds a single digest, and runs it through the episodic
+        ingest pipeline (extract → contradiction check → store). Best-effort and
+        safe to call multiple times. Returns a small status dict for the API.
+        """
+        if not user_id:
+            return {"stored": False, "reason": "no user_id — episodic memory is per-user only"}
+        if self._episodic is None:
+            return {"stored": False, "reason": "episodic memory is not active"}
+
+        try:
+            bundle = self.memory_adapter.load(session_id)
+            digest = self.memory_adapter.build_session_digest(bundle.working_memory)
+        except Exception as exc:
+            logger.warning("end_session: could not load/condense session %s: %s", session_id, exc)
+            return {"stored": False, "reason": f"session load failed: {exc}"}
+
+        if not digest.strip():
+            return {"stored": False, "reason": "empty session — nothing clinical to store"}
+
+        return self._run_episodic_ingest(user_id=user_id, text=digest)
+
+    def _run_episodic_ingest(self, *, user_id: str, text: str) -> dict:
+        """
+        Run one text through the episodic ingest pipeline. Best-effort: any LLM
+        rate-limit / network error is logged and swallowed. Returns a status dict.
         """
         try:
             result = self._run_async(
-                self._episodic.ingest_pipeline.run(
-                    user_id=user_id, utterance=utterance
-                )
+                self._episodic.ingest_pipeline.run(user_id=user_id, utterance=text)
             )
         except Exception as exc:
             logger.warning("Episodic ingest failed: %s", exc)
-            return
+            return {"stored": False, "reason": f"ingest error: {exc}"}
 
         if result.stored is not None:
             logger.info(
@@ -505,11 +528,15 @@ class GraphRAGPipeline:
                 result.stored.category.value,
                 result.stored.clinical_priority.value,
             )
+            status = {"stored": True, "episode_id": str(result.stored.episode_id),
+                      "category": result.stored.category.value}
         elif result.clarification.needs_clarification:
             qs = "; ".join(q.question for q in result.clarification.questions)
             logger.info("📝 Episodic ingest deferred — clarification needed: %s", qs)
+            status = {"stored": False, "reason": "clarification needed", "questions": qs}
         else:
             logger.info("📭 Episodic ingest skipped (no clinical content extracted).")
+            status = {"stored": False, "reason": "no clinical content extracted"}
 
         if result.contradictions.has_contradictions:
             logger.info(
@@ -518,6 +545,9 @@ class GraphRAGPipeline:
                 result.contradictions.confidence_penalty,
                 result.contradictions.triggers_clarification,
             )
+            status["contradictions"] = len(result.contradictions.contradictions)
+
+        return status
 
     # ------------------------------------------------------------------
 

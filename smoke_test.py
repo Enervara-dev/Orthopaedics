@@ -341,6 +341,82 @@ def test_stage4_injection():
             ASSESSMENT_READY_INSTRUCTION not in s and NO_RETRIEVAL_CONCLUDE_INSTRUCTION not in s)
 
 
+# ── 8. Episodic memory: session-end only (not per-turn) ───────────────────────
+def test_episodic_session_end():
+    R.section("8. Episodic — written only at session end")
+    from graphrag.pipeline.graphrag_pipeline import GraphRAGPipeline
+    from graphrag.processors.entity_processor import EntityProcessor
+    from graphrag.memory import SessionMemoryAdapter
+
+    captured: list[str] = []
+
+    class _Stored:
+        episode_id = "ep-1"
+        class category: value = "symptom"
+        class clinical_priority: value = "normal"
+
+    class _Result:
+        stored = _Stored()
+        class clarification:
+            needs_clarification = False
+            questions: list = []
+        class contradictions:
+            has_contradictions = False
+            contradictions: list = []
+            confidence_penalty = 0.0
+            triggers_clarification = False
+
+    class _Ingest:
+        async def run(self, *, user_id, utterance):
+            captured.append(utterance)
+            return _Result()
+
+    class _CtxBlock:
+        rendered_prompt = ""
+
+    class _Context:
+        async def build(self, req):
+            return _CtxBlock()
+
+    class _Episodic:
+        ingest_pipeline = _Ingest()
+        context_pipeline = _Context()
+
+    p = GraphRAGPipeline.__new__(GraphRAGPipeline)
+    p._episodic = _Episodic()
+    p._loop = None
+    p.entity_processor = EntityProcessor()
+    p.memory_adapter = SessionMemoryAdapter()
+
+    class A:
+        def analyze(self, q): return analysis("symptom_query", needs_followup=False)
+    class PC:
+        def retrieve(self, *a, **k): return [{"id": "c", "metadata": {"summary": "s", "entities": ["asthma"]}}]
+    class N:
+        def retrieve_relations(self, *a, **k): return []
+        def close(self): pass
+    class L:
+        def generate_response(self, **k): return "ANSWER: ok"
+    p.query_analyzer = A(); p.pinecone_retriever = PC(); p.neo4j_retriever = N(); p.llm = L()
+
+    # A chat turn WITH a user_id must NOT write episodic memory (no per-turn ingest).
+    with silent():
+        p.run("I have a cough and chest pain", session_id="ep_s", user_id="u1")
+    R.check("no per-turn episodic write during /chat", captured == [])
+
+    # Closing the session writes exactly ONE consolidated episode.
+    with silent():
+        status = p.end_session(user_id="u1", session_id="ep_s")
+    R.check("end_session stores one episode", status.get("stored") is True and len(captured) == 1, str(status))
+    digest = captured[0] if captured else ""
+    R.check("digest consolidates the session", "cough" in digest and "chest_pain" in digest, digest[:80])
+
+    # No user_id → nothing stored.
+    with silent():
+        st2 = p.end_session(user_id="", session_id="ep_s")
+    R.check("end_session is a no-op without user_id", st2.get("stored") is False, str(st2))
+
+
 # ── 7. HTTP API wiring (best-effort) ──────────────────────────────────────────
 def test_api_wiring():
     R.section("7. HTTP API wiring")
@@ -354,6 +430,7 @@ def test_api_wiring():
         paths = {getattr(r, "path", None) for r in app.routes}
         R.check("/health route registered", "/health" in paths)
         R.check("/chat route registered", "/chat" in paths)
+        R.check("/session/end route registered", "/session/end" in paths)
     except Exception as e:
         R.check("app.main imports", False, repr(e))
 
@@ -369,6 +446,7 @@ def main() -> None:
     test_entities()
     test_pipeline_scenarios()
     test_stage4_injection()
+    test_episodic_session_end()
     test_api_wiring()
     print("\n" + "=" * 64)
     total = R.passed + R.failed

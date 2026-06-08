@@ -86,6 +86,51 @@ class SessionMemoryAdapter:
 
         return "\n".join(parts)
 
+    def build_session_digest(self, wm: WorkingMemory) -> str:
+        """
+        Consolidate a whole session into ONE clinical narrative, used to write a
+        single episodic-memory episode when the conversation closes.
+
+        Combines the extracted structured state, the rolling summary (older
+        turns), and the patient's own statements — so the episodic extractor sees
+        the full consultation, not a single message.
+        """
+        parts: list[str] = []
+        state = wm.state
+
+        state_bits: list[str] = []
+        demo = state.demographics or {}
+        who = ", ".join(str(demo[k]) for k in ("age", "sex") if demo.get(k))
+        if who:
+            state_bits.append(f"Patient: {who}")
+        for label, values in (
+            ("Symptoms", state.symptoms),
+            ("Conditions", state.conditions),
+            ("Chronic conditions", state.chronic_conditions),
+            ("Medications", state.drugs),
+            ("Allergies", state.allergies),
+            ("Severity", state.severity),
+            ("Duration", state.duration),
+            ("Triggers", state.triggers),
+        ):
+            if values:
+                state_bits.append(f"{label}: {', '.join(values)}")
+        if state_bits:
+            parts.append("Consultation summary — " + "; ".join(state_bits) + ".")
+
+        if wm.summary:
+            parts.append(wm.summary.strip())
+
+        user_turns = [
+            t.content.strip()
+            for t in wm.recent_turns
+            if t.role == Role.USER and t.content.strip()
+        ]
+        if user_turns:
+            parts.append("Patient statements: " + " | ".join(user_turns))
+
+        return "\n".join(parts)
+
     def assemble_payload(
         self,
         wm: WorkingMemory,

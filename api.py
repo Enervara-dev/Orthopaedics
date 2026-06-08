@@ -71,6 +71,13 @@ class ChatResponse(BaseModel):
     session_id: str
 
 
+class SessionEndRequest(BaseModel):
+    session_id: str = Field("default", description="The conversation/session to close.")
+    user_id: str = Field(
+        "", description="User id — episodic memory is per-user; empty = nothing stored."
+    )
+
+
 # ── App lifecycle: build the pipeline once ────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -143,6 +150,22 @@ def chat(req: ChatRequest, request: Request) -> ChatResponse:
             raise HTTPException(status_code=500, detail=f"Pipeline error: {exc}") from exc
 
     return ChatResponse(answer=answer or "", session_id=req.session_id)
+
+
+@app.post("/session/end", dependencies=[Depends(require_api_key)])
+def end_session(req: SessionEndRequest, request: Request) -> dict:
+    """
+    Close a conversation: consolidate the session and write ONE episode to
+    episodic memory. Call this from the frontend when the chat closes.
+    Episodic memory is updated ONLY here — never per message.
+    """
+    pipeline = request.app.state.pipeline
+    lock = request.app.state.lock
+    with lock:
+        try:
+            return pipeline.end_session(user_id=req.user_id, session_id=req.session_id)
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Session-end error: {exc}") from exc
 
 
 if __name__ == "__main__":

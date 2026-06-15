@@ -17,69 +17,87 @@ import re
 # state is NOT a symptom. Anything emitted outside this set is mapped via
 # ENTITY_TYPE_SYNONYMS, else coerced to ENTITY_TYPE_FALLBACK.
 ENTITY_TYPES = [
-    "disease", "syndrome", "symptom", "clinical_finding", "lab_finding",
-    "metabolic_state", "physiological_state", "biomarker", "risk_factor",
-    "anatomical_entity", "drug", "drug_class", "procedure", "test", "intervention",
-    "mechanism", "pathogen", "gene", "protein", "clinical_process",
+    "Anatomical_Structure",
+    "Condition",
+    "Symptom",
+    "Diagnostic_Test",
+    "Treatment",
+    "Surgical_Procedure",
+    "Implant",
+    "Medication",
+    "Rehabilitation",
+    "Risk_Factor",
+    "Complication",
+    "Outcome"
 ]
 ENTITY_TYPE_SET = set(ENTITY_TYPES)
 
 # Common synonyms / mislabels the model emits → canonical type.
 ENTITY_TYPE_SYNONYMS = {
-    "medication": "drug", "medicine": "drug", "pharmaceutical": "drug",
-    "surgery": "procedure", "operation": "procedure",
-    "lab": "lab_finding", "laboratory_test": "test", "diagnostic_test": "test",
-    "lab_value": "lab_finding", "laboratory_finding": "lab_finding",
-    "sign": "clinical_finding", "finding": "clinical_finding",
-    "physical_sign": "clinical_finding",
-    "metabolic_disturbance": "metabolic_state", "acid_base_disorder": "metabolic_state",
-    "electrolyte_abnormality": "lab_finding",
-    "condition": "disease", "disorder": "disease", "illness": "disease",
-    "bacteria": "pathogen", "virus": "pathogen", "organism": "pathogen",
-    "anatomical_structure": "anatomical_entity", "organ": "anatomical_entity",
-    "drug_category": "drug_class", "medication_class": "drug_class",
+    "disease": "condition", "disorder": "condition", "injury": "condition",
+    "sign": "symptom", "clinical_finding": "symptom",
+    "test": "diagnostic_test", "investigation": "diagnostic_test", "imaging": "diagnostic_test",
+    "therapy": "treatment", "management": "treatment",
+    "surgery": "surgical_procedure", "operation": "surgical_procedure",
+    "prosthesis": "implant",
+    "drug": "medication", "medicine": "medication",
+    "physiotherapy": "rehabilitation", "physical_therapy": "rehabilitation", "rehab": "rehabilitation",
+    "predisposing_factor": "risk_factor",
+    "adverse_event": "complication",
+    "prognosis": "outcome"
 }
-ENTITY_TYPE_FALLBACK = "clinical_finding"
+ENTITY_TYPE_FALLBACK = "Condition"
 
 # ── 2. Relation vocabulary + qualifiers ───────────────────────────────────────
 RELATION_TYPES = [
-    "causes", "leads_to", "contributes_to", "manifests_as", "mimics", "complicates",
-    "increases_risk_of", "reduces_risk_of", "predisposes_to", "protects_against",
-    "treats", "alleviates", "mitigates", "reduces", "improves", "worsens", "used_for",
-    "indicated_for", "prevents", "contraindicated_with", "metabolized_by", "mediated_by",
-    "diagnosed_by", "detected_by", "screens_for", "assesses", "evaluates", "monitors",
-    "measures", "classifies", "stages", "requires", "includes", "affects",
-    "correlates_with", "alternative_to", "increases_likelihood_of",
-    "reduces_likelihood_of", "associated_with",
+    "AFFECTS",
+    "CAUSES",
+    "ASSOCIATED_WITH",
+    "PRESENTS_WITH",
+    "DIAGNOSED_BY",
+    "TREATED_BY",
+    "MANAGED_BY",
+    "REQUIRES",
+    "USES_IMPLANT",
+    "FOLLOWED_BY",
+    "INCREASES_RISK_OF",
+    "LEADS_TO",
+    "COMPLICATED_BY",
+    "RESULTS_IN"
 ]
 RELATION_TYPE_SET = set(RELATION_TYPES)
-RELATION_TYPE_FALLBACK = "associated_with"
+RELATION_TYPE_FALLBACK = "ASSOCIATED_WITH"
 
 # Allowed relation qualifier keys (graph edge properties). The clinical AXIS — esp.
 # onset/speed — must survive as an edge property, not be flattened away.
-RELATION_QUALIFIER_KEYS = ["onset", "temporality", "severity", "certainty", "context"]
+RELATION_QUALIFIER_KEYS = ["severity", "grade", "location", "laterality", "age_group", "outcome"]
 ONSET_VALUES = ["instantaneous", "acute", "subacute", "chronic"]
 
 # ── 3. Specialty taxonomy ─────────────────────────────────────────────────────
 # Chunks are tagged with EVERY specialty their CONTENT is relevant to (not the
 # source book), so cross-specialty data (an MI in a respiratory text) stays visible
 # to the cardiology agent. ⚠️ EDIT this to match your 15 specialties exactly.
-SPECIALTIES = [
-    "pulmonology", "cardiology", "nephrology", "endocrinology", "gastroenterology",
-    "hepatology", "neurology", "hematology", "oncology", "rheumatology",
-    "infectious_disease", "immunology", "dermatology", "emergency_medicine", "general_medicine",
-]
+
+SPECIALTIES = ["orthopaedics", "sports_medicine", "rheumatology", "physical_medicine_and_rehabilitation", "radiology", "pain_medicine", "neurology", "neurosurgery", "emergency_medicine", "trauma_surgery", "internal_medicine", "geriatrics", "endocrinology", "infectious_disease", "oncology"]
 SPECIALTY_SET = set(SPECIALTIES)
 
 # Variants the model emits → canonical specialty.
 SPECIALTY_SYNONYMS = {
-    "respiratory": "pulmonology", "respiratory_medicine": "pulmonology", "pulmonary": "pulmonology",
-    "renal": "nephrology", "cardiovascular": "cardiology", "cardiac": "cardiology",
-    "haematology": "hematology", "gi": "gastroenterology", "liver": "hepatology",
-    "infectious_diseases": "infectious_disease", "endocrine": "endocrinology",
-    "neuro": "neurology", "derm": "dermatology", "emergency": "emergency_medicine",
-    "er": "emergency_medicine", "ed": "emergency_medicine",
-    "internal_medicine": "general_medicine", "general": "general_medicine",
+    "ortho": "orthopaedics", "orthopedic": "orthopaedics", "orthopaedic": "orthopaedics",
+    "sports": "sports_medicine",
+    "rheum": "rheumatology", "rheumatologic": "rheumatology",
+    "pmr": "physical_medicine_and_rehabilitation", "physiatry": "physical_medicine_and_rehabilitation", "rehabilitation_medicine": "physical_medicine_and_rehabilitation",
+    "imaging": "radiology", "diagnostic_imaging": "radiology",
+    "pain_management": "pain_medicine",
+    "neurologic": "neurology",
+    "neurosurgical": "neurosurgery",
+    "er": "emergency_medicine", "emergency": "emergency_medicine",
+    "trauma": "trauma_surgery",
+    "internal": "internal_medicine", "general_medicine": "internal_medicine",
+    "geriatric": "geriatrics",
+    "endocrine": "endocrinology",
+    "infectious": "infectious_disease", "infection": "infectious_disease",
+    "cancer": "oncology", "oncologic": "oncology"
 }
 
 # ── 4. Segmentation patterns ──────────────────────────────────────────────────
@@ -102,8 +120,8 @@ MAX_CHUNK_TOKENS = 650
 EXTRACTOR_ROLE = "clinical knowledge extraction engine"
 SOURCE_DESCRIPTION = "medical reference text"
 KNOWLEDGE_NOUN = "clinical knowledge"
-CONCEPT_EXAMPLES = "a disease, a drug/drug class, a diagnostic approach, a mechanism, a management strategy"
-TOPIC_EXAMPLE = "Diagnosis of pulmonary embolism"
+CONCEPT_EXAMPLES = "a fracture, an orthopaedic injury, a diagnostic investigation, a surgical procedure, a rehabilitation strategy"
+TOPIC_EXAMPLE = "Diagnosis of anterior cruciate ligament tear"
 PROSE_NOUN = "clinical prose"
 EXPERT_NOUN = "a clinician"
 SKIP_EXAMPLES = '"rest", "exertion", "swimming", "history", "body position"'
@@ -113,13 +131,18 @@ _ENTITY_TYPES_STR = ", ".join(ENTITY_TYPES)
 _RELATION_TYPES_STR = ", ".join(RELATION_TYPES)
 _SPECIALTIES_STR = ", ".join(SPECIALTIES)
 
-RELATION_GUIDANCE = """    • disease/syndrome  manifests_as        symptom
-    • risk_factor       increases_risk_of   disease        (or predisposes_to)
-    • cause             causes / leads_to    effect
-    • drug/intervention treats / used_for    disease/symptom (or alleviates/indicated_for)
-    • disease           diagnosed_by         test/procedure
-    • test/procedure    assesses / detects   disease/biomarker
-    • drug              contraindicated_with drug/condition"""
+RELATION_GUIDANCE = """    • condition             affects              anatomical_structure
+    • condition             presents_with        symptom
+    • condition             diagnosed_by         diagnostic_test
+    • condition             treated_by           treatment
+    • condition             treated_by           surgical_procedure
+    • surgical_procedure    uses_implant         implant
+    • risk_factor           increases_risk_of    condition
+    • condition             leads_to             complication
+    • condition             results_in           outcome
+    • condition             complicated_by       complication
+    • treatment             followed_by          rehabilitation
+    • condition             requires             surgical_procedure"""
 
 SYSTEM_PROMPT = f"""You are a {EXTRACTOR_ROLE} for a graph-based reasoning system. You
 convert {SOURCE_DESCRIPTION} into STRICT JSON chunks that are HIGH-LEVEL,
@@ -159,11 +182,30 @@ ENTITIES (salient, canonical, precisely typed)
       synonyms collapse to one node — do NOT skip it.
     • `type` = the MOST SPECIFIC fit from: {_ENTITY_TYPES_STR}.
       TYPE PRECISELY — this drives graph traversal:
-        - a named disease/condition → disease
-        - a patient-reported complaint → symptom; an examination sign → clinical_finding
-        - a lab/test result (e.g. anaemia, hyperkalaemia, raised D-dimer) → lab_finding
-        - an acid–base/metabolic disturbance (e.g. metabolic acidosis) → metabolic_state
-        - a physiological state (e.g. hypoxaemia, hypotension) → physiological_state
+
+- bone, joint, ligament, tendon, muscle, cartilage, meniscus → Anatomical_Structure
+
+- fracture, injury, arthritis, osteoporosis, deformity, pathology → Condition
+
+- pain, swelling, tenderness, stiffness, instability, weakness → Symptom
+
+- x-ray, MRI, CT, stress test, ultrasound → Diagnostic_Test
+
+- casting, bracing, immobilization, conservative management → Treatment
+
+- arthroscopy, ORIF, ACL reconstruction, joint replacement → Surgical_Procedure
+
+- plate, screw, nail, prosthesis, graft → Implant
+
+- NSAID, antibiotic, analgesic → Medication
+
+- physiotherapy, exercise therapy, gait training → Rehabilitation
+
+- smoking, obesity, age, sports participation → Risk_Factor
+
+- infection, nonunion, malunion, implant failure → Complication
+
+- recovery, fracture union, functional improvement → Outcome
       Do NOT label findings, lab values, or metabolic states as "disease".
 - Do NOT emit codes — the system assigns standard terminology codes downstream.
 

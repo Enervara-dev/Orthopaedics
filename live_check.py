@@ -1,10 +1,10 @@
 """
-LIVE data-store check for the GraphRAG pulmonology assistant.
+LIVE data-store check for the GraphRAG orthopaedics assistant.
 
 Run this ON YOUR machine (with .env filled in and Neo4j running) to confirm the
 ingest landed where retrieval expects:
 
-  - Pinecone main index reachable, and the `pulmonology_v1` NAMESPACE has vectors
+  - Pinecone main index reachable, and the `orthopaedics` NAMESPACE has vectors
     (retrieval is locked to that namespace — data in another namespace = no hits).
   - Neo4j has :Entity / :Chunk nodes and relationships.
   - Episodic index reachable (info only).
@@ -14,7 +14,7 @@ to also run ONE real end-to-end pipeline turn (this DOES call Gemini = paid).
 
 Usage:
     python live_check.py
-    python live_check.py --query "cough and breathlessness for a week"
+    python live_check.py --query "knee pain and swelling after football"
 """
 
 from __future__ import annotations

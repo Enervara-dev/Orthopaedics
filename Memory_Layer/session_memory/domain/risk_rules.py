@@ -15,15 +15,32 @@ from __future__ import annotations
 # Symptom terms (canonical keys from extraction_patterns.SYMPTOM_PATTERNS) that,
 # on their own, escalate risk to "critical".
 CRITICAL_SYMPTOMS: frozenset[str] = frozenset({
-    "chest_pain", "shortness_of_breath", "haemoptysis", "cyanosis",
-    "confusion", "syncope",
+    "inability_to_bear_weight",
+    "foot_drop",
+    "wrist_drop",
 })
 
 # High-signal symptoms that escalate risk to at least "high" (strong influence on
 # ranking + urgency) but are not, alone, an automatic emergency.
 HIGH_SIGNAL_SYMPTOMS: frozenset[str] = frozenset({
-    "wheezing", "tachypnea", "severe_weakness", "night_sweats",
+    "pain",
+    "swelling",
+    "deformity",
+    "instability",
+    "limited_range_of_motion",
+    "numbness",
+    "tingling",
+    "weakness",
+    "joint_locking",
+    "fever",
 })
 
 # Ordered low → high. Used by merge_state to only escalate risk.
-RISK_ORDER: list[str] = ["none", "low", "medium", "high", "critical"]
+RISK_ORDER: list[str] = [
+    "none",
+    "low",
+    "medium",
+    "high",
+    "critical",
+]
+

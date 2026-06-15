@@ -16,14 +16,14 @@ REFUSAL_MESSAGE: str = (
 # Returned when a query is medical but falls below the pulmonology relevance
 # threshold (see vocabulary.PULMONOLOGY_RELEVANCE_THRESHOLD).
 OUT_OF_SCOPE_MESSAGE: str = (
-    "🫁 I'm focused on pulmonology and respiratory medicine, so I can't help "
-    "with that one. Please ask about a lung or breathing-related concern "
-    "(e.g. cough, breathlessness, asthma, COPD, chest infections)."
+    "🦴 I'm focused on orthopaedics and musculoskeletal health, so I can't help "
+    "with that one. Please ask about bones, joints, muscles, ligaments, tendons, "
+    "fractures, injuries, arthritis, spine conditions, or rehabilitation."
 )
 
 # Returned when the gatekeeper detects an emergency red-flag.
 EMERGENCY_MESSAGE: str = (
-    "🚨 EMERGENCY: Your symptoms sound like a serious emergency. "
-    "Please call emergency services (112 / 911) immediately or go to the "
-    "nearest hospital."
+    "🚨 EMERGENCY: Your symptoms may indicate a serious orthopaedic emergency. "
+    "Please seek immediate medical attention, call emergency services (112 / 911), "
+    "or go to the nearest emergency department."
 )

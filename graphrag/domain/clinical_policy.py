@@ -76,18 +76,18 @@ def closure_directive(
 # Prose, for prompt injection. Mirrors the canonical risk keys in the memory
 # layer (session_memory/domain/risk_rules.py) but is phrased for the LLM.
 HIGH_SIGNAL_SYMPTOMS_TEXT = (
-    "chest pain, coughing up blood (haemoptysis), wheeze, smoking history, signs of "
-    "low oxygen (bluish lips/fingertips, marked breathlessness at rest), severe "
-    "weakness, fast breathing (tachypnea), and persistent or high fever"
+    "severe pain, inability to bear weight, inability to move a limb, major deformity, "
+    "neurovascular compromise, numbness, weakness, loss of sensation, open fractures, "
+    "joint instability, suspected infection, and progressive neurological symptoms"
 )
 
 # ── Emergency red flags (respiratory / cardiopulmonary) ───────────────────────
 # Prose list for the gatekeeper emergency section.
 RED_FLAGS_TEXT = (
-    "severe shortness of breath or breathlessness at rest; bluish/grey lips, face, "
-    "or fingertips (cyanosis); too breathless to speak in full sentences; new "
-    "confusion or drowsiness; persistent or crushing chest pain; coughing up blood; "
-    "fainting or loss of consciousness (syncope); or signs of dangerously low oxygen"
+    "open fractures; absent pulses; cold, pale or blue limb; loss of sensation; "
+    "new weakness or paralysis; severe deformity after injury; suspected compartment "
+    "syndrome; inability to bear weight after trauma; suspected septic arthritis; "
+    "high fever with a painful swollen joint; or progressive neurological deficits"
 )
 
 # Deterministic backstop — STRONG, present-tense red-flag phrases. The pipeline
@@ -96,56 +96,35 @@ RED_FLAGS_TEXT = (
 # (they require explicit severity) so ordinary complaints like "can't breathe
 # properly" or a past "chest pain last week" do NOT trip them.
 RED_FLAG_PATTERNS: dict[str, re.Pattern[str]] = {
-    "severe_breathlessness": re.compile(
-        r"\b(can'?t|cannot|unable to)\s+breathe?\s+at all\b"
-        r"|\bstruggl\w*\s+to\s+breathe?\b"
-        r"|\bgasping\s+(for\s+)?(air|breath)\b"
-        r"|\bfighting\s+(for|to)\s+breathe?\b"
-        r"|\bsuffocat\w*"
-        r"|\bsever(e|ely)\s+(short(ness)?\s+of\s+breath|breathless|difficulty\s+breathing|dyspn\w*)",
+    "open_fracture": re.compile(
+        r"\b(open fracture|bone sticking out|bone exposed)\b",
         re.IGNORECASE,
     ),
-    "cyanosis": re.compile(
-        r"\b(blue|bluish|grey|gray|purple)\s+(lips?|fingers?|fingertips?|face|skin|nails?)\b"
-        r"|\blips?\s+(are\s+)?(turning\s+)?(blue|bluish|grey|gray|purple)\b",
+    "neurovascular_compromise": re.compile(
+        r"\b(no pulse|absent pulse|cold foot|cold hand|cold limb|blue foot|blue hand)\b",
         re.IGNORECASE,
     ),
-    "cannot_speak_full_sentences": re.compile(
-        r"\b(can'?t|cannot|too\s+breathless\s+to)\s+(speak|talk|finish)\b.*\b(sentence|sentences|words)\b"
-        r"|\bonly\s+(say|speak)\s+(a\s+)?few\s+words\b"
-        r"|\bcan'?t\s+(complete|finish)\s+(a\s+)?sentence",
+    "loss_of_sensation": re.compile(
+        r"\b(numbness|can't feel|loss of sensation|loss of feeling)\b",
         re.IGNORECASE,
     ),
-    "confusion": re.compile(
-        r"\b(confused|confusion|disorient\w+|not\s+making\s+sense|very\s+drowsy|hard\s+to\s+wake)\b",
+    "paralysis_or_weakness": re.compile(
+        r"\b(paralysis|can't move|unable to move|foot drop|wrist drop)\b",
         re.IGNORECASE,
     ),
-    "persistent_chest_pain": re.compile(
-        r"\b(persistent|constant|severe|crushing|tight)\b.{0,20}\bchest\s+pain\b"
-        r"|\bchest\s+pain\b.{0,30}\b(won'?t|doesn'?t|wont)\s+(go\s+away|stop|ease)\b"
-        r"|\bchest\s+pain\b.{0,20}\bfor\s+(hours|the\s+last\s+hour)\b"
-        r"|\bcrushing\b.{0,15}\bchest\b",
+    "compartment_syndrome": re.compile(
+        r"\b(compartment syndrome|pain out of proportion)\b",
         re.IGNORECASE,
     ),
-    "haemoptysis": re.compile(
-        r"\bcough(ing)?\s+up\s+blood\b"
-        r"|\bblood\s+(in|when|while)\b.{0,20}\b(cough|sputum|phlegm|mucus)\b"
-        r"|\b(haemoptysis|hemoptysis)\b"
-        r"|\bspitting\s+blood\b",
+    "septic_joint": re.compile(
+        r"\b(fever.*swollen joint|hot swollen joint|septic arthritis)\b",
         re.IGNORECASE,
     ),
-    "syncope": re.compile(
-        r"\b(faint(ed|ing)?|passed\s+out|black(ed)?\s+out|collaps(e|ed|ing)|lost\s+consciousness)\b",
-        re.IGNORECASE,
-    ),
-    "oxygen_distress": re.compile(
-        r"\boxygen\b.{0,15}\b(low|drop|dropping|falling|below)\b"
-        r"|\b(o2|spo2|sats?|saturation)\b.{0,12}\b(low|drop\w*|falling|\d{1,2}\s*%)\b"
-        r"|\blow\s+oxygen\b",
+    "major_trauma": re.compile(
+        r"\b(severe deformity|major trauma|high impact accident)\b",
         re.IGNORECASE,
     ),
 }
-
 
 def detect_red_flags(text: str) -> list[str]:
     """Return the names of any emergency red flags present in `text`."""
@@ -176,13 +155,13 @@ reassure. Err toward caution — recommend timely or urgent assessment and state
 specific red flags that mean "seek care now"."""
 
 QUESTIONING_POLICY = f"""TRIAGE QUESTIONING
-- Actively ask the clinically important triage questions when symptoms are ambiguous \
-or potentially serious — do not default to "no questions". Good triage questions probe \
-onset/duration, progression, severity, triggers/relievers, associated red-flag symptoms, \
-and relevant history (e.g. smoking, known lung disease).
-- Ask only what changes management. Ask at most {MAX_FOLLOWUP_QUESTIONS} questions, \
-fewest possible, the most decision-relevant first. If you already have enough to answer \
-safely, don't ask."""
+- Actively ask clinically important orthopaedic questions when symptoms are ambiguous.
+- Focus on mechanism of injury, onset, duration, location, severity, deformity, swelling,
+  weight-bearing ability, range of motion, neurological symptoms, vascular symptoms,
+  prior injuries, and relevant imaging.
+- Ask only what changes management. Ask at most {MAX_FOLLOWUP_QUESTIONS} questions,
+  fewest possible, the most decision-relevant first. If enough information exists,
+  do not ask additional questions."""
 
 SAFEGUARDS = """GENERATION SAFEGUARDS
 - No FALSE REASSURANCE: never imply something is harmless when red flags or high-signal \

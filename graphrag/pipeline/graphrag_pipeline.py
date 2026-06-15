@@ -6,7 +6,7 @@ from graphrag.domain import (
     EMERGENCY_MESSAGE,
     MAX_FOLLOWUP_QUESTIONS,
     OUT_OF_SCOPE_MESSAGE,
-    PULMONOLOGY_RELEVANCE_THRESHOLD,
+    ORTHOPAEDICS_RELEVANCE_THRESHOLD,
     REFUSAL_MESSAGE,
     detect_red_flags,
 )
@@ -188,17 +188,17 @@ class GraphRAGPipeline:
             # conversational follow-ups, and emergencies are exempt (the latter
             # must always be answered).
             gk_intent = analysis.get("intent")
-            relevance = analysis.get("pulmonology_relevance")
+            relevance = analysis.get("orthopaedics_relevance")
             if (
                 not emergency
                 and isinstance(relevance, (int, float))
-                and relevance < PULMONOLOGY_RELEVANCE_THRESHOLD
+                and relevance < ORTHOPAEDICS_RELEVANCE_THRESHOLD
                 and gk_intent not in ("greeting", "followup_query", "emergency")
                 and final_action != "route_to_followup"
             ):
                 logger.info(
-                    "⛔ Out of pulmonology scope (relevance=%s < %s) — restricting.",
-                    relevance, PULMONOLOGY_RELEVANCE_THRESHOLD,
+                    "⛔ Out of orthopaedics scope (relevance=%s < %s) — restricting.",
+                    relevance, ORTHOPAEDICS_RELEVANCE_THRESHOLD,
                 )
                 msg = OUT_OF_SCOPE_MESSAGE
                 print(f"\n{msg}\n")

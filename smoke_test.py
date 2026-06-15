@@ -81,8 +81,8 @@ def silent():
 
 
 # ── stub pipeline builder ─────────────────────────────────────────────────────
-def build_stub_pipeline(analyses, *, graph=("asthma -[manifests_as]-> wheeze",),
-                        chunk_entities=("asthma", "wheeze"), llm_answer="ANSWER: clinical guidance"):
+def build_stub_pipeline(analyses, *, graph=("fracture -[PRESENTS_WITH]-> pain",),
+                        chunk_entities=("fracture", "pain"), llm_answer="ANSWER: clinical guidance"):
     """
     A GraphRAGPipeline with external services stubbed but real in-process
     components (entity_processor, memory_adapter → RAM). `analyses` is a list of
@@ -129,10 +129,10 @@ def build_stub_pipeline(analyses, *, graph=("asthma -[manifests_as]-> wheeze",),
 
 
 def analysis(intent="symptom_query", *, needs_followup=False, relevance=95,
-             risk="low", action="retrieve", symptoms=("cough",)):
+             risk="low", action="retrieve", symptoms=("pain",)):
     return {
         "domain": "health", "intent": intent, "risk_level": risk,
-        "pulmonology_relevance": relevance,
+        "orthopaedics_relevance": relevance,
         "medical_entities": {"symptoms": list(symptoms), "drugs": [], "conditions": []},
         "rewritten_query": "", "needs_followup": needs_followup,
         "followup_questions": (["q"] if needs_followup else []), "final_action": action,
@@ -169,28 +169,28 @@ def test_imports():
 def test_domain():
     R.section("2. Domain layer")
     from graphrag.domain import (
-        PINECONE_NAMESPACE, PULMONOLOGY_RELEVANCE_THRESHOLD,
+        PINECONE_NAMESPACE, ORTHOPAEDICS_RELEVANCE_THRESHOLD,
         GATEKEEPER_SYSTEM_PROMPT, compose_system_prompt, detect_red_flags,
     )
     from graphrag.domain.clinical_policy import (
         closure_directive, ASSESSMENT_READY_INSTRUCTION, NO_RETRIEVAL_CONCLUDE_INSTRUCTION,
         MAX_DIAGNOSTIC_TURNS,
     )
-    R.check("retrieval namespace = pulmonology_v1", PINECONE_NAMESPACE == "pulmonology_v1", PINECONE_NAMESPACE)
-    R.check("scope threshold = 75", PULMONOLOGY_RELEVANCE_THRESHOLD == 75)
+    R.check("retrieval namespace = orthopaedics", PINECONE_NAMESPACE == "orthopaedics", PINECONE_NAMESPACE)
+    R.check("scope threshold = 75", ORTHOPAEDICS_RELEVANCE_THRESHOLD == 75)
     R.check("max diagnostic turns = 2", MAX_DIAGNOSTIC_TURNS == 2)
     R.check("gatekeeper prompt has relevance rubric + red flags + terminal state",
             all(s in GATEKEEPER_SYSTEM_PROMPT for s in
-                ("pulmonology_relevance", "RESPIRATORY / CARDIOPULMONARY RED FLAGS", "assessment_ready")))
+                ("orthopaedics_relevance", "ORTHOPAEDIC RED FLAGS", "assessment_ready")))
     crit = compose_system_prompt(query_type="symptom_query", risk_level="critical", has_name=False)
     R.check("critical answer prompt = structured emergency",
             "EMERGENCY RESPONSE STRUCTURE" in crit and "POSSIBLE SERIOUS CAUSES" in crit)
     pulm = compose_system_prompt(query_type="symptom_query", risk_level="none", has_name=False)
-    R.check("answer prompt is pulmonology-tuned", "pulmonology" in pulm.lower())
+    R.check("answer prompt is orthopaedics-tuned", "orthopaedics" in pulm.lower())
     # red flag detection
-    R.check("red flag: coughing up blood", detect_red_flags("I am coughing up blood") == ["haemoptysis"])
-    R.check("red flag: NOT tripped by mild 'cant breathe properly'",
-            detect_red_flags("i cant breath properly, sinus") == [])
+    R.check("red flag: open fracture", detect_red_flags("I have an open fracture with bone exposed") == ["open_fracture"])
+    R.check("red flag: NOT tripped by minor symptoms",
+            detect_red_flags("i have mild knee pain") == [])
     # closure directive matrix
     R.check("closure: greeting (no findings) → none",
             closure_directive(intent="greeting", needs_followup=False, memory_only=True, has_findings=False) is None)
@@ -208,21 +208,21 @@ def test_memory():
     from Memory_Layer.session_memory import SessionMemory, Message, Role, extract_state, get_working_memory
     from Memory_Layer.session_memory.state_extractor import extract_entities
 
-    raw = extract_entities("chest pain and wheezing, worse in the morning, coughing up blood")
-    R.check("respiratory symptom extraction", {"chest_pain", "wheezing", "haemoptysis"} <= set(raw.symptoms), str(raw.symptoms))
-    R.check("trigger extraction", "morning" in raw.triggers, str(raw.triggers))
+    raw = extract_entities("knee pain and swelling after football, unable to bear weight")
+    R.check("orthopaedic symptom extraction", {"pain", "swelling", "inability_to_bear_weight"} <= set(raw.symptoms), str(raw.symptoms))
+    R.check("trigger extraction", "sports" in raw.triggers, str(raw.triggers))
 
     # symptom-weighted risk in the live path
     s = SessionMemory(session_id="m1")
-    s.state = extract_state(s, Message(role=Role.USER, content="I have chest pain", risk_level="low"))
+    s.state = extract_state(s, Message(role=Role.USER, content="I can't walk", risk_level="low"))
     R.check("critical symptom escalates risk → critical", str(s.state.risk_level) in ("critical", "RiskLevel.CRITICAL"), str(s.state.risk_level))
 
     # continuity across turns
     s2 = SessionMemory(session_id="m2")
-    s2.state = extract_state(s2, Message(role=Role.USER, content="cough for 3 days"))
-    s2.add_turn(Message(role=Role.USER, content="cough for 3 days"))
-    s2.state = extract_state(s2, Message(role=Role.USER, content="now also wheezing"))
-    R.check("symptoms accumulate across turns", {"cough", "wheezing"} <= set(s2.state.symptoms), str(s2.state.symptoms))
+    s2.state = extract_state(s2, Message(role=Role.USER, content="pain for 3 days"))
+    s2.add_turn(Message(role=Role.USER, content="pain for 3 days"))
+    s2.state = extract_state(s2, Message(role=Role.USER, content="now also swelling"))
+    R.check("symptoms accumulate across turns", {"pain", "swelling"} <= set(s2.state.symptoms), str(s2.state.symptoms))
 
 
 # ── 4. entity processor ───────────────────────────────────────────────────────
@@ -233,14 +233,14 @@ def test_entities():
 
     # plain-name metadata (real Pinecone format) — the bug we fixed
     _, ents, _ = EntityProcessor.process_matches(
-        [{"id": "1", "metadata": {"summary": "s", "entities": ["asthma", "wheeze", "asthma"]}}],
-        priority_entity_types=["disease"], query="")
-    R.check("plain-name entities extracted + deduped", ents == ["asthma", "wheeze"], str(ents))
+        [{"id": "1", "metadata": {"summary": "s", "entities": ["fracture", "pain", "fracture"]}}],
+        priority_entity_types=["Condition"], query="")
+    R.check("plain-name entities extracted + deduped", ents == ["fracture", "pain"], str(ents))
 
-    merged = _merge_graph_entities(["asthma"], _entities_from_analysis(
-        {"medical_entities": {"symptoms": ["chest_pain"], "drugs": [], "conditions": ["copd"]}}), ["wheeze"])
+    merged = _merge_graph_entities(["fracture"], _entities_from_analysis(
+        {"medical_entities": {"symptoms": ["pain"], "drugs": [], "conditions": ["osteoarthritis"]}}), ["swelling"])
     R.check("hybrid graph entities (chunk+query+memory, normalized)",
-            merged[0] == "asthma" and "chest pain" in merged, str(merged))
+            merged[0] == "fracture" and "pain" in merged, str(merged))
 
 
 # ── 5. full pipeline scenarios ────────────────────────────────────────────────
@@ -251,10 +251,10 @@ def test_pipeline_scenarios():
     # a) in-scope → retrieval + graph + answer, graph entities are hybrid
     p, calls, flags = build_stub_pipeline([analysis("symptom_query", needs_followup=True)])
     with silent():
-        ans = p.run("breathless and wheezing", session_id="sc_in")
+        ans = p.run("knee pain and swelling", session_id="sc_in")
     gctx = calls[-1]["graph_context"]
     R.check("in-scope answered + retrieval ran", ans.startswith("ANSWER:") and flags["retrieved"])
-    R.check("graph traversal produced relations", "manifests_as" in gctx, gctx[:60])
+    R.check("graph traversal produced relations", "PRESENTS_WITH" in gctx, gctx[:60])
 
     # b) out-of-scope → restricted, retrieval skipped
     p, calls, flags = build_stub_pipeline([analysis("symptom_query", relevance=20, needs_followup=False)])
@@ -266,7 +266,7 @@ def test_pipeline_scenarios():
     # c) emergency (red flag) → reasoned answer at critical risk, retrieval ran
     p, calls, flags = build_stub_pipeline([analysis("symptom_query", needs_followup=False)])
     with silent():
-        ans = p.run("I am coughing up blood and struggling to breathe", session_id="sc_er")
+        ans = p.run("I have an open fracture with bone sticking out", session_id="sc_er")
     R.check("emergency → reasoned LLM answer (not static)", ans.startswith("ANSWER:"))
     R.check("emergency → critical risk + retrieval ran",
             calls and calls[-1]["risk_level"] == "critical" and flags["retrieved"], str(calls[-1]["risk_level"]) if calls else "no-call")
@@ -275,7 +275,7 @@ def test_pipeline_scenarios():
     p, calls, _ = build_stub_pipeline([analysis("symptom_query", needs_followup=True)] * 3)
     with silent():
         for _ in range(3):
-            p.run("I have a cough", session_id="sc_turns")
+            p.run("I have pain", session_id="sc_turns")
     R.check("turn 1 not terminal", calls[0]["query_type"] == "symptom_query")
     R.check("turn 3 forced → assessment_ready", calls[2]["query_type"] == "assessment_ready" and calls[2]["needs_followup"] is False)
 
@@ -283,15 +283,15 @@ def test_pipeline_scenarios():
     p, calls, _ = build_stub_pipeline([analysis("symptom_query", needs_followup=True),
                                        analysis("symptom_query", needs_followup=False)])
     with silent():
-        p.run("I have a cough", session_id="sc_nf")
-        p.run("still coughing", session_id="sc_nf")
+        p.run("I have pain", session_id="sc_nf")
+        p.run("still pain", session_id="sc_nf")
     R.check("needs_followup False → assessment_ready", calls[1]["query_type"] == "assessment_ready")
 
     # f) NO_RETRIEVAL medical follow-up → memory_only + findings (conclude)
     p, calls, _ = build_stub_pipeline([analysis("symptom_query", needs_followup=True),
                                        analysis("followup_query", needs_followup=True, action="route_to_followup")])
     with silent():
-        p.run("I have a cough", session_id="sc_nr")
+        p.run("I have pain", session_id="sc_nr")
         p.run("is it serious?", session_id="sc_nr")
     R.check("NO_RETRIEVAL follow-up → memory_only + has_findings",
             calls[1]["memory_only"] is True and calls[1]["has_findings"] is True, str({k: calls[1][k] for k in ("memory_only", "has_findings")}))
@@ -391,7 +391,7 @@ def test_episodic_session_end():
     class A:
         def analyze(self, q): return analysis("symptom_query", needs_followup=False)
     class PC:
-        def retrieve(self, *a, **k): return [{"id": "c", "metadata": {"summary": "s", "entities": ["asthma"]}}]
+        def retrieve(self, *a, **k): return [{"id": "c", "metadata": {"summary": "s", "entities": ["fracture"]}}]
     class N:
         def retrieve_relations(self, *a, **k): return []
         def close(self): pass
@@ -401,7 +401,7 @@ def test_episodic_session_end():
 
     # A chat turn WITH a user_id must NOT write episodic memory (no per-turn ingest).
     with silent():
-        p.run("I have a cough and chest pain", session_id="ep_s", user_id="u1")
+        p.run("I have knee pain and swelling", session_id="ep_s", user_id="u1")
     R.check("no per-turn episodic write during /chat", captured == [])
 
     # Closing the session writes exactly ONE consolidated episode.
@@ -409,7 +409,7 @@ def test_episodic_session_end():
         status = p.end_session(user_id="u1", session_id="ep_s")
     R.check("end_session stores one episode", status.get("stored") is True and len(captured) == 1, str(status))
     digest = captured[0] if captured else ""
-    R.check("digest consolidates the session", "cough" in digest and "chest_pain" in digest, digest[:80])
+    R.check("digest consolidates the session", "pain" in digest and "swelling" in digest, digest[:80])
 
     # No user_id → nothing stored.
     with silent():
@@ -437,7 +437,7 @@ def test_api_wiring():
 
 def main() -> None:
     print("=" * 64)
-    print("  OFFLINE SMOKE TEST — GraphRAG pulmonology assistant")
+    print("  OFFLINE SMOKE TEST — GraphRAG orthopaedics assistant")
     print("  (Pinecone / Neo4j / Gemini stubbed — no network, no cost)")
     print("=" * 64)
     test_imports()

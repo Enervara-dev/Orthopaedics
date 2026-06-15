@@ -35,8 +35,16 @@ STATE_RENDER_FIELDS: list[tuple[str, str]] = [
     ("chronic_conditions",   "Chronic conditions"),
     ("drugs",                "Medications"),
     ("allergies",            "Allergies"),
+
     ("severity",             "Severity"),
     ("duration",             "Duration"),
+
+    ("anatomical_sites",     "Affected anatomical sites"),
+    ("laterality",           "Affected side"),
+    ("injury_mechanism",     "Mechanism of injury"),
+    ("imaging",              "Imaging studies"),
+    ("surgical_history",     "Surgical history"),
+
     ("triggers",             "Triggers / patterns"),
     ("previous_concerns",    "Previous concerns"),
     ("follow_up_references", "Follow-up references"),
@@ -50,8 +58,16 @@ SUMMARY_RENDER_FIELDS: list[tuple[str, str]] = [
     ("chronic_conditions", "Chronic conditions"),
     ("drugs",              "Medications mentioned"),
     ("allergies",          "Allergies mentioned"),
+
     ("severity",           "Severity descriptors"),
     ("duration",           "Duration"),
+
+    ("anatomical_sites",   "Affected anatomical sites"),
+    ("laterality",         "Affected side"),
+    ("injury_mechanism",   "Mechanism of injury"),
+    ("imaging",            "Imaging studies"),
+    ("surgical_history",   "Previous orthopaedic procedures"),
+
     ("triggers",           "Triggers / patterns"),
     ("previous_concerns",  "Previous concerns"),
 ]

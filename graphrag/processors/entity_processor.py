@@ -1,6 +1,6 @@
 import re
 from typing import List, Tuple
-from graphrag.domain.entity_rules import DRUG_NAME_PATTERN, DRUG_NAME_STOPWORDS
+from graphrag.domain.entity_rules import MEDICATION_NAME_PATTERN, MEDICATION_NAME_STOPWORDS
 from graphrag.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -113,6 +113,6 @@ class EntityProcessor:
         Lightweight heuristic: extract multi-word tokens that look like drug names
         (capitalized or all-alpha strings after 'take', 'with', 'and', 'between').
         """
-        candidates = re.findall(DRUG_NAME_PATTERN, query)
-        drugs = [c for c in candidates if c not in DRUG_NAME_STOPWORDS]
+        candidates = re.findall(MEDICATION_NAME_PATTERN, query)
+        drugs = [c for c in candidates if c not in MEDICATION_NAME_STOPWORDS]
         return [d.lower() for d in drugs]

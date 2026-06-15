@@ -20,67 +20,207 @@ import re
 # ── Clinical entity patterns ──────────────────────────────────────────────────
 
 SYMPTOM_PATTERNS: dict[str, list[str]] = {
-    "fever":              [r"\bfever\b", r"\bhigh temperature\b", r"\btemperature\b"],
-    "chills":             [r"\bchill(s|ing)?\b", r"\bshiver(ing)?\b"],
-    "sore_throat":        [r"\bsore throat\b", r"\bthroat pain\b", r"\bthroat ache\b"],
-    "cough":              [r"\bcough(ing)?\b"],
-    "shortness_of_breath":[r"\bshortness of breath\b", r"\bbreathing difficult\b", r"\bcan'?t breathe\b",
-                           r"\bbreathless(ness)?\b", r"\bout of breath\b", r"\bdyspn\w*\b"],
-    "chest_pain":         [r"\bchest pain\b", r"\bchest tightness\b", r"\bchest heaviness\b", r"\btight chest\b"],
-    "headache":           [r"\bheadache\b", r"\bhead pain\b"],
-    "fatigue":            [r"\bfatigue\b", r"\btired\b", r"\bexhausted\b"],
-    "nausea":             [r"\bnausea\b", r"\bfeeling sick\b"],
-    "dizziness":          [r"\bdizzy\b", r"\bdizziness\b"],
-    # ── Respiratory-specific (pulmonology) ──
-    "wheezing":           [r"\bwheez(e|es|ing|y)\b"],
-    "haemoptysis":        [r"\bcough(ing)? up blood\b", r"\bcoughing blood\b",
-                           r"\bblood in (the )?(sputum|phlegm|mucus)\b",
-                           r"\b(haemoptysis|hemoptysis)\b", r"\bspitting blood\b"],
-    "cyanosis":           [r"\b(blue|bluish|grey|gray|purple) (lips?|fingers?|fingertips?|face|skin|nails?)\b",
-                           r"\blips? (are )?(turning )?(blue|bluish)\b"],
-    "tachypnea":          [r"\b(fast|rapid|quick) breathing\b", r"\bbreathing (fast|rapidly|quickly)\b",
-                           r"\btachypn\w*\b"],
-    "sputum":             [r"\b(sputum|phlegm|mucus|catarrh)\b"],
-    "nasal_congestion":   [r"\b(blocked|stuffy|congested|runny) nose\b", r"\bnasal congestion\b",
-                           r"\bnose (is )?(blocked|stuffy|running|runny)\b"],
-    "sinus":              [r"\bsinus(es|itis)?\b"],
-    "sneezing":           [r"\bsneez(e|es|ing)\b"],
-    "hoarseness":         [r"\bhoarse(ness)?\b", r"\blost my voice\b"],
-    "night_sweats":       [r"\bnight sweats?\b"],
-    "confusion":          [r"\bconfus(ed|ion)\b", r"\bdisorient\w+\b"],
-    "syncope":            [r"\bfaint(ed|ing)?\b", r"\bpassed out\b", r"\bblack(ed)? out\b",
-                           r"\bcollaps(e|ed)\b", r"\blost consciousness\b"],
-    "severe_weakness":    [r"\b(severe|extreme) weakness\b", r"\bvery weak\b", r"\bcan'?t stand\b"],
+    "pain": [
+        r"\bpain\b",
+        r"\baching\b",
+        r"\bache\b",
+        r"\bsore\b"
+    ],
+
+    "swelling": [
+        r"\bswelling\b",
+        r"\bswollen\b"
+    ],
+
+    "stiffness": [
+        r"\bstiff(ness)?\b"
+    ],
+
+    "deformity": [
+        r"\bdeformity\b",
+        r"\bdeformed\b"
+    ],
+
+    "instability": [
+        r"\binstability\b",
+        r"\bgiving way\b",
+        r"\bbuckling\b"
+    ],
+
+    "limited_range_of_motion": [
+        r"\breduced movement\b",
+        r"\blimited movement\b",
+        r"\blimited range of motion\b",
+        r"\bcan't move\b"
+    ],
+
+    "inability_to_bear_weight": [
+        r"\bcan't walk\b",
+        r"\bcannot walk\b",
+        r"\bunable to walk\b",
+        r"\bcan't bear weight\b",
+        r"\bunable to bear weight\b"
+    ],
+
+    "numbness": [
+        r"\bnumb(ness)?\b"
+    ],
+
+    "tingling": [
+        r"\btingling\b",
+        r"\bpins and needles\b"
+    ],
+
+    "weakness": [
+        r"\bweak(ness)?\b"
+    ],
+
+    "wrist_drop": [
+        r"\bwrist drop\b"
+    ],
+
+    "foot_drop": [
+        r"\bfoot drop\b"
+    ],
+
+    "joint_locking": [
+        r"\blocking\b",
+        r"\blocked knee\b"
+    ],
+
+    "joint_clicking": [
+        r"\bclicking\b",
+        r"\bpopping\b"
+    ],
+
+    "fever": [
+        r"\bfever\b"
+    ]
 }
 
 # Trigger / pattern recognition — when does the symptom occur or worsen? Captured
 # into StructuredState.triggers for cross-turn triage continuity.
 TRIGGER_PATTERNS: dict[str, list[str]] = {
-    "morning":      [r"\bin the morning(s)?\b", r"\bmorning(s)?\b", r"\bwhen i wake\b"],
-    "night":        [r"\bat night\b", r"\bnight ?time\b", r"\bwhen i lie down\b", r"\blying down\b"],
-    "exertion":     [r"\b(exercise|exertion|exerting|physical activity)\b",
-                     r"\bwhen i (walk|exert|run|climb)\b", r"\bclimbing stairs\b", r"\bwalking\b"],
-    "cold_air":     [r"\bcold air\b", r"\bin the cold\b", r"\bcold weather\b"],
-    "allergen":     [r"\b(dust|pollen|pet|animal|mould|mold)\b", r"\ballerg\w*\b"],
-    "after_eating": [r"\bafter (eating|meals?|food)\b"],
+    "walking": [
+        r"\bwalking\b",
+        r"\bwhile walking\b"
+    ],
+
+    "running": [
+        r"\brunning\b"
+    ],
+
+    "stairs": [
+        r"\bclimbing stairs\b",
+        r"\bgoing upstairs\b",
+        r"\bgoing downstairs\b"
+    ],
+
+    "sports": [
+        r"\bfootball\b",
+        r"\bcricket\b",
+        r"\bbasketball\b",
+        r"\bsports\b"
+    ],
+
+    "lifting": [
+        r"\blifting\b",
+        r"\bheavy lifting\b"
+    ],
+
+    "fall": [
+        r"\bfall\b",
+        r"\bfell\b",
+        r"\bslipped\b"
+    ],
+
+    "twisting": [
+        r"\btwist(ed|ing)?\b"
+    ],
+
+    "weight_bearing": [
+        r"\bstanding\b",
+        r"\bweight bearing\b"
+    ]
 }
 
 # Distinguishing between acute conditions and chronic conditions
 CHRONIC_PATTERNS: dict[str, list[str]] = {
-    "diabetes":           [r"\bdiabetes\b", r"\bdiabetic\b"],
-    "hypertension":       [r"\bhypertension\b", r"\bhigh blood pressure\b", r"\bhigh bp\b"],
-    "asthma":             [r"\basthma\b", r"\basthmatic\b"],
-    "heart_disease":      [r"\bheart disease\b", r"\bcardiac issue\b"],
-    "thyroid":            [r"\bthyroid\b"],
-    "arthritis":          [r"\barthritis\b", r"\bjoint pain\b"],
+    "osteoarthritis": [
+        r"\bosteoarthritis\b",
+        r"\boa\b"
+    ],
+
+    "rheumatoid_arthritis": [
+        r"\brheumatoid arthritis\b",
+        r"\bra\b"
+    ],
+
+    "osteoporosis": [
+        r"\bosteoporosis\b"
+    ],
+
+    "scoliosis": [
+        r"\bscoliosis\b"
+    ],
+
+    "kyphosis": [
+        r"\bkyphosis\b"
+    ],
+
+    "chronic_back_pain": [
+        r"\bchronic back pain\b"
+    ],
+
+    "degenerative_disc_disease": [
+        r"\bdegenerative disc disease\b"
+    ]
 }
 
 CONDITION_PATTERNS: dict[str, list[str]] = {
-    "flu":                [r"\bflu\b", r"\binfluenza\b"],
-    "strep_throat":       [r"\bstrep throat\b"],
-    "covid":              [r"\bcovid\b", r"\bcoronavirus\b"],
-    "infection":          [r"\binfection\b", r"\binfected\b"],
-    "migraine":           [r"\bmigraine\b"],
+    "fracture": [
+        r"\bfracture\b",
+        r"\bbroken bone\b"
+    ],
+
+    "dislocation": [
+        r"\bdislocation\b",
+        r"\bdislocated\b"
+    ],
+
+    "sprain": [
+        r"\bsprain\b"
+    ],
+
+    "strain": [
+        r"\bstrain\b"
+    ],
+
+    "acl_tear": [
+        r"\bacl tear\b",
+        r"\banterior cruciate ligament tear\b"
+    ],
+
+    "meniscus_tear": [
+        r"\bmeniscus tear\b",
+        r"\bmeniscal tear\b"
+    ],
+
+    "rotator_cuff_tear": [
+        r"\brotator cuff tear\b"
+    ],
+
+    "osteomyelitis": [
+        r"\bosteomyelitis\b"
+    ],
+
+    "septic_arthritis": [
+        r"\bseptic arthritis\b"
+    ],
+
+    "carpal_tunnel_syndrome": [
+        r"\bcarpal tunnel\b"
+    ]
 }
 
 ALLERGY_PATTERNS: dict[str, list[str]] = {

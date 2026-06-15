@@ -187,9 +187,9 @@ def main():
     ap = argparse.ArgumentParser(description="Load chunks into Neo4j")
     ap.add_argument("--version", default="v1")
     ap.add_argument("--limit", type=int, default=0)
-    ap.add_argument("--source-specialty", default="pulmonology",
+    ap.add_argument("--source-specialty", default="orthopaedics",
                     help="Parent specialty for chunks lacking source.source_specialty "
-                         "(the existing v1 chunks). Default: pulmonology.")
+                         "(the existing v1 chunks). Default: orthopaedics.")
     ap.add_argument("--dry-run", action="store_true", help="Build rows, no DB connection")
     args = ap.parse_args()
 

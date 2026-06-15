@@ -5,6 +5,7 @@ from chunking.detectors.structure import StructureDetector
 from chunking.extractors.semantic import SemanticExtractor
 from chunking.llm.retry_engine import ExtractionWithRetry
 from chunking.storage.versioned_storage import VersionedStorage
+from chunking.postprocessing import postprocess_chunk
 from chunking.schemas.models import DocumentMetadata, SemanticBlock
 from chunking.config.settings import settings
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -104,6 +105,8 @@ class DocumentProcessingPipeline:
                 # folder name, and long ids blow past Windows MAX_PATH.
                 text_hash = hashlib.md5(chunk.text.encode("utf-8")).hexdigest()[:10]
                 chunk.chunk_id = f"{ref_block.metadata.doc_id}-{text_hash}"
+                # ── Post-processing: entity overrides → relation repair → canonicalization
+                postprocess_chunk(chunk)
                 self.storage.save_chunk(chunk, index=1, version=version)
                 chunks.append(chunk)
             if chunks:

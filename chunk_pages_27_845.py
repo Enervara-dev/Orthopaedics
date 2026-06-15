@@ -50,8 +50,8 @@ for _stream in (sys.stdout, sys.stderr):
         pass
 
 # ── Config ───────────────────────────────────────────────────────────────────
-START_PAGE = 27
-END_PAGE = 845
+START_PAGE = 20
+END_PAGE = 394
 DEFAULT_VERSION = "v1"
 SMOKE_VERSION = "_smoke_27_845"
 DATASET_DIR = PROJECT_ROOT / "dataset"
@@ -61,7 +61,7 @@ DATASET_DIR = PROJECT_ROOT / "dataset"
 PUBLICATION_YEAR = None      # e.g. 2020
 EDITION = None               # e.g. "3rd edition"
 # The book's home specialty → the Neo4j parent node (:Specialty)-[:HAS_CHUNK]->(:Chunk).
-SOURCE_SPECIALTY = "pulmonology"
+SOURCE_SPECIALTY = "orthopaedics"
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 LOG_DIR = PROJECT_ROOT / "logs"

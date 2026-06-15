@@ -24,14 +24,14 @@ query-understanding layer reads from.
 # QueryType is generated from this, so adding/removing a category here is the
 # single edit needed to extend the taxonomy.
 QUERY_TYPES: list[tuple[str, str]] = [
-    ("SYMPTOM_QUERY",      "symptom_query"),
-    ("DRUG_INTERACTION",   "drug_interaction"),
-    ("DIAGNOSIS",          "diagnosis"),
-    ("GUIDELINE",          "guideline"),
-    ("LAB_INTERPRETATION", "lab_interpretation"),
-    ("PROGNOSIS",          "prognosis"),
-    ("OUT_OF_CONTEXT",     "out_of_context"),
-    ("UNKNOWN",            "unknown"),
+    ("SYMPTOM_QUERY",          "symptom_query"),
+    ("MEDICATION_QUERY",       "medication_query"),
+    ("DIAGNOSIS",              "diagnosis"),
+    ("TREATMENT",              "treatment"),
+    ("IMAGING_INTERPRETATION", "imaging_interpretation"),
+    ("PROGNOSIS",              "prognosis"),
+    ("OUT_OF_CONTEXT",         "out_of_context"),
+    ("UNKNOWN",                "unknown"),
 ]
 
 # Fallback query-type value when a classified type has no config.
@@ -44,69 +44,103 @@ DEFAULT_QUERY_TYPE: str = "unknown"
 # per specialty.
 QUERY_TUNING: dict[str, dict] = {
     "symptom_query": dict(
-        vector_top_k          = 15,      # oversample before reranker
-        reranker_top_k        = 5,
-        graph_hops            = 1,
-        graph_enabled         = True,
-        priority_entity_types = ["disease", "symptom", "syndrome"],
-        goal                  = "cause identification",
+        vector_top_k=15,
+        reranker_top_k=5,
+        graph_hops=1,
+        graph_enabled=True,
+        priority_entity_types=[
+            "Condition",
+            "Symptom",
+            "Anatomical_Structure"
+        ],
+        goal="orthopaedic differential diagnosis",
     ),
-    "drug_interaction": dict(
-        vector_top_k          = 15,      # wider net for drug combos
-        reranker_top_k        = 5,
-        graph_hops            = 2,       # 2-hop to find indirect interactions
-        graph_enabled         = True,
-        priority_entity_types = ["drug", "drug_class", "mechanism", "side_effect"],
-        goal                  = "interaction and risk",
-        boost_drug_pairs      = True,
+
+    "medication_query": dict(
+        vector_top_k=15,
+        reranker_top_k=5,
+        graph_hops=1,
+        graph_enabled=True,
+        priority_entity_types=[
+            "Medication",
+            "Treatment",
+            "Complication"
+        ],
+        goal="medication usage and safety",
     ),
+
     "diagnosis": dict(
-        vector_top_k          = 15,
-        reranker_top_k        = 5,
-        graph_hops            = 1,
-        graph_enabled         = False,   # summary-driven, graph less important
-        priority_entity_types = ["disease", "syndrome", "condition", "disorder"],
-        goal                  = "clear explanation / definition",
+        vector_top_k=15,
+        reranker_top_k=5,
+        graph_hops=1,
+        graph_enabled=True,
+        priority_entity_types=[
+            "Condition",
+            "Symptom",
+            "Diagnostic_Test",
+            "Anatomical_Structure"
+        ],
+        goal="condition explanation and diagnosis",
     ),
-    "guideline": dict(
-        vector_top_k          = 20,      # deepest retrieval
-        reranker_top_k        = 7,       # keep more for structured protocols
-        graph_hops            = 1,
-        graph_enabled         = True,
-        priority_entity_types = ["procedure", "drug", "treatment", "protocol", "therapy"],
-        goal                  = "structured clinical protocol",
+
+    "treatment": dict(
+        vector_top_k=20,
+        reranker_top_k=7,
+        graph_hops=1,
+        graph_enabled=True,
+        priority_entity_types=[
+            "Treatment",
+            "Surgical_Procedure",
+            "Rehabilitation",
+            "Implant",
+            "Medication"
+        ],
+        goal="treatment planning and management",
     ),
-    "lab_interpretation": dict(
-        vector_top_k          = 15,
-        reranker_top_k        = 5,
-        graph_hops            = 1,
-        graph_enabled         = True,
-        priority_entity_types = ["test", "lab_value", "biomarker", "threshold"],
-        goal                  = "lab result interpretation",
+
+    "imaging_interpretation": dict(
+        vector_top_k=15,
+        reranker_top_k=5,
+        graph_hops=1,
+        graph_enabled=True,
+        priority_entity_types=[
+            "Diagnostic_Test",
+            "Anatomical_Structure",
+            "Condition"
+        ],
+        goal="imaging and investigation interpretation",
     ),
+
     "prognosis": dict(
-        vector_top_k          = 15,
-        reranker_top_k        = 5,
-        graph_hops            = 1,
-        graph_enabled         = True,
-        priority_entity_types = ["outcome", "risk_factor", "survival", "mortality", "disease"],
-        goal                  = "future risk / survival estimate",
+        vector_top_k=15,
+        reranker_top_k=5,
+        graph_hops=1,
+        graph_enabled=True,
+        priority_entity_types=[
+            "Outcome",
+            "Risk_Factor",
+            "Complication",
+            "Condition"
+        ],
+        goal="recovery and long-term outcome",
     ),
+
     "out_of_context": dict(
-        vector_top_k          = 0,
-        reranker_top_k        = 0,
-        graph_hops            = 0,
-        graph_enabled         = False,
-        priority_entity_types = [],
-        goal                  = "reject out of context / gibberish queries",
+        vector_top_k=0,
+        reranker_top_k=0,
+        graph_hops=0,
+        graph_enabled=False,
+        priority_entity_types=[],
+        goal="reject out-of-scope queries",
     ),
+
     "unknown": dict(
-        vector_top_k          = 15,
-        reranker_top_k        = 5,
-        graph_hops            = 1,
-        graph_enabled         = True,
-        priority_entity_types = [],
-        goal                  = "general medical answer",
+        vector_top_k=15,
+        reranker_top_k=5,
+        graph_hops=1,
+        graph_enabled=True,
+        priority_entity_types=[],
+        goal="general orthopaedic answer",
     ),
 }
 
@@ -116,8 +150,8 @@ QUERY_TUNING: dict[str, dict] = {
 # are short-circuited or routed to NO_RETRIEVAL/MEMORY_FIRST before a QueryType
 # is consulted, so the absence of a mapping is the correct signal.
 INTENT_TO_QUERYTYPE: dict[str, str] = {
-    "symptom_query":    "symptom_query",
-    "diagnosis_query":  "diagnosis",
-    "medication_query": "drug_interaction",
-    "treatment_query":  "guideline",
+    "symptom_query": "symptom_query",
+    "diagnosis_query": "diagnosis",
+    "medication_query": "medication_query",
+    "treatment_query": "treatment",
 }

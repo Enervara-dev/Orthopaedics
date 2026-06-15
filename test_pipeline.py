@@ -101,18 +101,18 @@ def _make_valid_chunk(version="test", book="Test Book"):
     return MicroChunk(
         chunk_id="test-chunk-1",
         source=ChunkSource(book=book, chapter="general", topic="general", page="1"),
-        text="Asthma is a chronic airway disease treated with salbutamol; wheeze is a key symptom.",
+        text="Anterior cruciate ligament tear is an orthopaedic condition diagnosed by MRI.",
         entities=[
-            ClinicalEntity(name="asthma", type="disease"),
-            ClinicalEntity(name="salbutamol", type="drug"),
-            ClinicalEntity(name="wheeze", type="symptom"),
+            ClinicalEntity(name="anterior cruciate ligament tear", type="Condition"),
+            ClinicalEntity(name="anterior cruciate ligament", type="Anatomical_Structure"),
+            ClinicalEntity(name="mri", type="Diagnostic_Test"),
         ],
         relations=[
-            ClinicalRelation(source="salbutamol", target="asthma", type="treats"),
-            ClinicalRelation(source="asthma", target="wheeze", type="manifests_as"),
+            ClinicalRelation(source="anterior cruciate ligament tear", target="anterior cruciate ligament", type="AFFECTS"),
+            ClinicalRelation(source="anterior cruciate ligament tear", target="mri", type="DIAGNOSED_BY"),
         ],
-        summary="Asthma overview.",
-        clinical_significance="Common chronic respiratory condition.",
+        summary="ACL tear overview.",
+        clinical_significance="Common knee ligament injury.",
         metadata=ChunkMetadata(tokens=15, model="test", quality_check="passed"),
     )
 
@@ -191,7 +191,7 @@ def test_live_extraction(start_page):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Pulmonology pipeline tests")
+    ap = argparse.ArgumentParser(description="Orthopaedics pipeline tests")
     ap.add_argument("--live", action="store_true", help="also run one real LLM extraction")
     ap.add_argument("--start-page", type=int, default=60,
                     help="PDF page the block/live tests read from (default: 60)")

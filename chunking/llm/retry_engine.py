@@ -11,7 +11,7 @@ from typing import Optional
 COMPACT_SCHEMA = json.dumps({
     "chunks": [{
         "source": {"chapter": "broad section", "topic": "specific concept title"},
-        "specialties": ["pulmonology", "cardiology"],
+        "specialties": ["orthopaedics", "cardiology"],
         "text": "clean clinical prose (~150-350 tokens)",
         "entities": [{
             "name": "canonical name (abbreviations expanded)",

@@ -4,11 +4,11 @@
 # After connecting this repo on Render, set the `sync: false` secrets in the
 # dashboard (they are NOT read from your local .env). NEO4J_URI must point at a
 # REACHABLE Neo4j (e.g. Neo4j Aura) — a local bolt://127.0.0.1 will not work on
-# Render. Your Pinecone namespace (pulmonology_v1) must already be populated.
+# Render. Your Pinecone namespace (orthopaedics) must already be populated.
 
 services:
   - type: web
-    name: enervera-pulmonology-api
+    name: enervera-orthopaedics-api
     runtime: python
     plan: starter                      # bump for more memory/CPU as needed
     region: oregon                     # pick the region closest to your data stores

@@ -1,5 +1,5 @@
 """
-api.py — deployment entrypoint for the GraphRAG pulmonology assistant HTTP API.
+api.py — deployment entrypoint for the GraphRAG orthopaedics assistant HTTP API.
 
 Routes:
     GET  /         → service info
@@ -99,7 +99,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Enervera Pulmonology Assistant",
+    title="Enervera Orthopaedics Assistant",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -124,7 +124,7 @@ def require_api_key(x_api_key: str | None = Header(default=None)) -> None:
 # ── Routes ────────────────────────────────────────────────────────────────────
 @app.get("/")
 def root() -> dict[str, str]:
-    return {"service": "Enervera Pulmonology Assistant", "status": "ok", "docs": "/docs"}
+    return {"service": "Enervera Orthopaedics Assistant", "status": "ok", "docs": "/docs"}
 
 
 @app.get("/health")

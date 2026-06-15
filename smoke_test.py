@@ -1,5 +1,5 @@
 """
-Offline end-to-end smoke test for the GraphRAG pulmonology assistant.
+Offline end-to-end smoke test for the GraphRAG orthopaedics assistant.
 
 Runs WITHOUT network or paid calls: Pinecone, Neo4j, and Gemini are stubbed.
 It exercises every subsystem and asserts behavior:

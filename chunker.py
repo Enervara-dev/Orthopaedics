@@ -62,7 +62,7 @@ def _titleize(name: str) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Pulmonology PDF chunking pipeline")
+    parser = argparse.ArgumentParser(description="Orthopaedics PDF chunking pipeline")
     parser.add_argument("--version", default=DEFAULT_VERSION, help="Output version tag (default: v1)")
     parser.add_argument("--dataset-dir", default=str(DATASET_DIR),
                         help="Directory to read PDFs from (default: ./dataset)")
@@ -94,7 +94,7 @@ def main():
     if not pdfs:
         logger.error(
             "No PDFs found in %s\n"
-            "-> Drop your pulmonology reference PDFs into that folder and re-run.",
+            "-> Drop your orthopaedics reference PDFs into that folder and re-run.",
             dataset_dir,
         )
         sys.exit(1)

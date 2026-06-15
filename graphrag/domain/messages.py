@@ -13,8 +13,8 @@ REFUSAL_MESSAGE: str = (
     "Please ask a medical question."
 )
 
-# Returned when a query is medical but falls below the pulmonology relevance
-# threshold (see vocabulary.PULMONOLOGY_RELEVANCE_THRESHOLD).
+# Returned when a query is medical but falls below the orthopaedics relevance
+# threshold (see vocabulary.ORTHOPAEDICS_RELEVANCE_THRESHOLD).
 OUT_OF_SCOPE_MESSAGE: str = (
     "🦴 I'm focused on orthopaedics and musculoskeletal health, so I can't help "
     "with that one. Please ask about bones, joints, muscles, ligaments, tendons, "

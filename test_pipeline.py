@@ -1,5 +1,5 @@
 """
-Smoke / sanity tests for the pulmonology chunking pipeline.
+Smoke / sanity tests for the orthopaedics chunking pipeline.
 
 By default this runs OFFLINE (no API calls, no cost):
   - imports resolve

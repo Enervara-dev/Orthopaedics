@@ -183,7 +183,7 @@ class GraphRAGPipeline:
                 logger.info("🚨 Gatekeeper flagged emergency — escalating to emergency response.")
                 emergency = True
 
-            # ── Pulmonology scope gate ────────────────────────────────────
+            # ── Orthopaedics scope gate ───────────────────────────────────
             # Restrict medical-but-out-of-specialty queries. Greetings,
             # conversational follow-ups, and emergencies are exempt (the latter
             # must always be answered).
